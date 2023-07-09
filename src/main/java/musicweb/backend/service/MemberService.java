@@ -9,6 +9,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -20,6 +22,10 @@ public class MemberService {
         return memberRepository.findById(SecurityUtil.getCurrentMemberId())
                 .map(MemberResponseDto::of)
                 .orElseThrow(()->new RuntimeException("로그인 유저 정보가 없습니다."));
+    }
+    public Member getMemberEmail(String email){
+        Member member = memberRepository.findByEmail(email).orElseThrow(()->new RuntimeException("로그인 유저 정보가 없습니다"));
+        return member;
     }
     @Transactional
     public MemberResponseDto changeMemberNickname(String email, String nickname){

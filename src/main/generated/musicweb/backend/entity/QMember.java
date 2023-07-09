@@ -7,6 +7,7 @@ import com.querydsl.core.types.dsl.*;
 import com.querydsl.core.types.PathMetadata;
 import javax.annotation.processing.Generated;
 import com.querydsl.core.types.Path;
+import com.querydsl.core.types.dsl.PathInits;
 
 
 /**
@@ -28,6 +29,8 @@ public class QMember extends EntityPathBase<Member> {
     public final StringPath nickname = createString("nickname");
 
     public final StringPath password = createString("password");
+
+    public final ListPath<musicweb.backend.entity.musicentity.PlaylistEntity, musicweb.backend.entity.musicentity.QPlaylistEntity> playlists = this.<musicweb.backend.entity.musicentity.PlaylistEntity, musicweb.backend.entity.musicentity.QPlaylistEntity>createList("playlists", musicweb.backend.entity.musicentity.PlaylistEntity.class, musicweb.backend.entity.musicentity.QPlaylistEntity.class, PathInits.DIRECT2);
 
     public final StringPath PreferenceGenre = createString("PreferenceGenre");
 

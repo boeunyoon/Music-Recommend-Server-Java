@@ -3,12 +3,11 @@ package musicweb.backend.service.musicservice;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
-import musicweb.backend.entity.musicentity.ArtistEntity;
-import musicweb.backend.entity.musicentity.QArtistEntity;
-import musicweb.backend.entity.musicentity.QSongEntity;
-import musicweb.backend.entity.musicentity.SongEntity;
+import musicweb.backend.entity.musicentity.*;
+import musicweb.backend.repository.musicrepository.SongRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -47,6 +46,16 @@ public class SongSearchService {
                 .where(artistPredicate.or(titlePredicate))
                 .orderBy(qSongEntity.popularity.desc())
                 .fetch();
+    }
+    public List<SongEntity> searchByPlaylistSongID(List<PlaylistEntity> playlist){
+        List<SongEntity> songEntityList = new ArrayList<>();
+        for (PlaylistEntity playlistEntity: playlist) {
+            SongEntity songEntity = jpaQueryFactory.selectFrom(qSongEntity)
+                    .where(qSongEntity.id.eq(playlistEntity.getSongId()))
+                    .fetchOne();
+            songEntityList.add(songEntity);
+        }
+        return songEntityList;
     }
 
 
