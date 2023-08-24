@@ -45,7 +45,7 @@ public class PlayListService {
         List<PlaylistEntity> allByMember = playlistRepository.findAllByMember(member);
         return allByMember;
     }
-    //유저의 플레일이스트 조회 플레이리스트 화면에 띄울 때 더 많은 정보가 필요하기 떄문에 새로 만듬
+    //유저의 플레이스트 조회 플레이리스트 화면에 띄울 때 더 많은 정보가 필요하기 떄문에 새로 만듬
     public List<SongEntity> getUserDetailPlaylist(){
         MemberResponseDto infoBySecurity = memberService.getInfoBySecurity();
         String email = infoBySecurity.getEmail();
