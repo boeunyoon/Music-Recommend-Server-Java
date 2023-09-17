@@ -33,4 +33,14 @@ public class RecommendController {
         ResponseEntity<?> responseEntity = recommendService.finalJsonForm();
         return responseEntity;
     }
+    @GetMapping("/recommend/playlist")
+    public ResponseEntity<?> RecommendPlaylisyByPlaylist(){
+        ResponseEntity<?> responseEntity = recommendService.recommendPlaylist();
+        return responseEntity;
+    }
+    @GetMapping("/recommend/prefer")
+    public ResponseEntity<?> RecommendPrefer(){
+        ResponseEntity<?> responseEntity = recommendService.recommendGenreAndArtist();
+        return responseEntity;
+    }
 }
