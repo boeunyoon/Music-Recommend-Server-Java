@@ -17,5 +17,8 @@ public class ArtistDTO {
         this.artistName = artistName;
         this.artistPopularity = artistPopularity;
     }
+    public ArtistDTO(){
+
+    }
 
 }

@@ -24,16 +24,18 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-web-services'
+	implementation 'mysql:mysql-connector-java'
+
 	implementation 'com.google.code.gson:gson:2.9.0'
 	implementation group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
 	// Jackson Core
-	implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.12.5' // 원하는 Jackson 버전으로 변경
+	implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.12.5'
 
 	// Jackson Databind
-	implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.5' // 원하는 Jackson 버전으로 변경
+	implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.5'
 
 	// Jackson Annotation
-	implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.12.5' // 원하는 Jackson 버전으로 변경
+	implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.12.5'
 
 	// queryDSL 설정
 	implementation "com.querydsl:querydsl-jpa"

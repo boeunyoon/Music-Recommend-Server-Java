@@ -29,6 +29,7 @@ public class RecommendService {
     private final SongSearchService songSearchService;
     private final SongRepository songRepository;
     private final PlayListService playListService;
+    private final ArtistSongService artistSongService;
     //추천시스템에 들어갈 유저정보 만들기
     private JSONObject makeUserinfoJson(){
         MemberResponseDto infoBySecurity = memberService.getInfoBySecurity();
@@ -39,7 +40,7 @@ public class RecommendService {
         jsonObject.put("user_info", userInfo);
         return jsonObject;
     }
-    //플레이리스트가 없을 경우 추천해 주는 음악
+    //플레이리스트가 없을 경우 추천해 주는 음악(Track추천)
     public JSONObject getFirstArtistList(){
         JSONObject combineList = makeUserinfoJson();
         JSONObject artistList = new JSONObject();
@@ -67,15 +68,21 @@ public class RecommendService {
         JSONObject trackList = new JSONObject();
         String id = "";
         List<SongEntity> userDetailPlaylist = playListService.getUserDetailPlaylist();
-        for (SongEntity songEntity : userDetailPlaylist) {
-            id = songEntity.getId();
-            SongIdList.add(id);
+        if (userDetailPlaylist.isEmpty()){
+            List<String> songs = artistSongService.GetPreferArtistSongs();
+            trackList.put("track_list", songs);
+            combineList.put("input", trackList);
+        } else {
+            for (SongEntity songEntity : userDetailPlaylist) {
+                id = songEntity.getId();
+                SongIdList.add(id);
+            }
+            trackList.put("track_list", SongIdList);
+            combineList.put("input", trackList);
         }
-        trackList.put("track_list", SongIdList);
-        combineList.put("input", trackList);
         return combineList;
     }
-    //플레이리스트 존재 여부에 따른 Json만들기
+    //플레이리스트 존재 여부에 따른 트랙 추천 Json만들기
     public ResponseEntity<?> finalJsonForm(){
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -108,6 +115,7 @@ public class RecommendService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         String url = "http://127.0.0.1:8000/playlist_recommand";
         JSONObject playlist = makeTrackListForm();
+        System.out.println("playlist = " + playlist);
         HttpEntity<JSONObject> request = new HttpEntity<>(playlist, headers);
         ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
         if (response.getStatusCode().is2xxSuccessful()){
@@ -165,31 +173,18 @@ public class RecommendService {
     public ResponseEntity<?> recommendGenreAndArtist(){
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        List<SongEntity> userDetailPlaylist = playListService.getUserDetailPlaylist();
-        if(userDetailPlaylist.isEmpty()){
-            String url = "http://127.0.0.1:8000/prefer_genre";
-            JSONObject firstArtistList = getFirstArtistList();
-            HttpEntity<JSONObject> request = new HttpEntity<>(firstArtistList, headers);
-            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-            if (response.getStatusCode().is2xxSuccessful()){
-                return response;
-            }else {
-                return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-            }
+        String url = "http://127.0.0.1:8000/prefer_genre";
+        JSONObject jsonObject = makeTrackListForm();
+        HttpEntity<JSONObject> request = new HttpEntity<>(jsonObject, headers);
+        ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
+        if (response.getStatusCode().is2xxSuccessful()){
+            JSONObject jsonObject1 = ParseJsonObject(response);
+            return new ResponseEntity<>(jsonObject1, HttpStatus.OK);
         }else {
-            String url = "http://127.0.0.1:8000/prefer_genre";
-            JSONObject jsonObject = makeTrackListForm();
-            HttpEntity<JSONObject> request = new HttpEntity<>(jsonObject, headers);
-            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-            if (response.getStatusCode().is2xxSuccessful()){
-                JSONObject jsonObject1 = ParseJsonObject(response);
-
-                return new ResponseEntity<>(jsonObject1, HttpStatus.OK);
-            }else {
-                return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-            }
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         }
     }
+    // 받아온 장르 선호도 데이터에 track 정보 붙여서 보내주기
     private JSONObject ParseJsonObject(ResponseEntity<String> response){
         JSONParser jsonParser = new JSONParser();
         JSONArray genrePlaylists = new JSONArray();
@@ -199,8 +194,6 @@ public class RecommendService {
             responseBody = (JSONObject) jsonParser.parse(response.getBody());
             List<String> genre = (List<String>) responseBody.get("top_genre");
             genrePlaylists = (JSONArray) responseBody.get("genre_playlists");
-            System.out.println("genrePlaylists = " + genrePlaylists);
-            System.out.println("genre = " + genre);
             for (int i = 0; i < genrePlaylists.size(); i++) {
                 String s1 = genre.get(i);
                 JSONObject genrePlaylistsJSON = (JSONObject) genrePlaylists.get(i);
@@ -208,6 +201,79 @@ public class RecommendService {
                 System.out.println("GenrePlaylistArray = " + GenrePlaylistArray);
                 if (GenrePlaylistArray.size() != 0 ){
                     for (Object trackList : GenrePlaylistArray) {
+                        JSONObject trackList1 = (JSONObject) trackList;
+                        List<String> tracks = (List<String>)trackList1.get("track_list");
+                        JSONArray trackArray = new JSONArray();
+                        for (String track : tracks) {
+                            System.out.println("track = " + track);
+                            JSONObject trackJson = new JSONObject();
+                            Optional<SongEntity> songEntityOptional = songRepository.findById(track);
+                            if (songEntityOptional.isPresent()){
+                                SongEntity songEntity = songEntityOptional.get();
+                                trackJson.put("id", songEntity.getId());
+                                trackJson.put("albumId", songEntity.getAlbumId());
+                                trackJson.put("album", songEntity.getAlbum());
+                                trackJson.put("title", songEntity.getTitle());
+                                trackJson.put("artist", songEntity.getArtist());
+                                trackJson.put("artistId", songEntity.getArtistId());
+                                trackJson.put("releaseDate", songEntity.getReleaseDate());
+                                trackJson.put("popularity", songEntity.getPopularity());
+                                trackJson.put("image640", songEntity.getImage640());
+                                trackJson.put("image300",songEntity.getImage300());
+                                trackJson.put("image64", songEntity.getImage64());
+                                trackArray.add(trackJson);
+                            }
+                        }
+                        trackList1.replace("track_list", trackArray);
+                    }
+                }else {
+                    genrePlaylistsJSON.remove(s1);
+                    emptyList.add(i);
+                }
+            }
+            Collections.sort(emptyList, Collections.reverseOrder());
+            for (Integer j : emptyList) {
+                genrePlaylists.remove(j.intValue());
+                genre.remove(j.intValue());
+            }
+            responseBody.replace("top_genre", genre);
+            responseBody.replace("genre_playlists", genrePlaylists);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return responseBody;
+    }
+    //선호 아티스트 플레이리스트
+    public ResponseEntity<?> recommendArtistPlaylist(){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        String url = "http://127.0.0.1:8000/prefer_artist";
+        JSONObject jsonObject = makeTrackListForm();
+        HttpEntity<JSONObject> request = new HttpEntity<>(jsonObject, headers);
+        ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
+        if (response.getStatusCode().is2xxSuccessful()){
+            JSONObject jsonObject1 = ParseJsonObjectArtist(response);
+            return new ResponseEntity<>(jsonObject1, HttpStatus.OK);
+        }else {
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+    }
+    // 받아온 아티스트 선호도 데이터에 track 정보 붙여서 보내주기
+    private JSONObject ParseJsonObjectArtist(ResponseEntity<String> response){
+        JSONParser jsonParser = new JSONParser();
+        JSONArray artistPlaylists = new JSONArray();
+        JSONObject responseBody = new JSONObject();
+        List<Integer> emptyList = new ArrayList<>();
+        try{
+            responseBody = (JSONObject) jsonParser.parse(response.getBody());
+            List<String> topArtist = (List<String>) responseBody.get("top_artist");
+            artistPlaylists = (JSONArray) responseBody.get("artist_playlist");
+            for (int i = 0; i < artistPlaylists.size(); i++) {
+                String s1 = topArtist.get(i);
+                JSONObject artistPlaylistsJSON = (JSONObject) artistPlaylists.get(i);
+                JSONArray ArtistPlaylistArray = (JSONArray)artistPlaylistsJSON.get(s1);
+                if (ArtistPlaylistArray.size() != 0 ){
+                    for (Object trackList : ArtistPlaylistArray) {
                         JSONObject trackList1 = (JSONObject) trackList;
                         List<String> tracks = (List<String>)trackList1.get("track_list");
                         JSONArray trackArray = new JSONArray();
@@ -232,17 +298,17 @@ public class RecommendService {
                         trackList1.replace("track_list", trackArray);
                     }
                 }else {
-                    genrePlaylistsJSON.remove(s1);
+                    artistPlaylistsJSON.remove(s1);
                     emptyList.add(i);
                 }
             }
             Collections.sort(emptyList, Collections.reverseOrder());
             for (Integer j : emptyList) {
-                genrePlaylists.remove(j.intValue());
-                genre.remove(j.intValue());
+                artistPlaylists.remove(j.intValue());
+                topArtist.remove(j.intValue());
             }
-            responseBody.replace("top_genre", genre);
-            responseBody.replace("genre_playlists", genrePlaylists);
+            responseBody.replace("top_artist", topArtist);
+            responseBody.replace("artist_playlist", artistPlaylists);
         }catch (Exception e){
             e.printStackTrace();
         }
